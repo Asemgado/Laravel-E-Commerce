@@ -3,88 +3,88 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use Illuminate\Http\Request;
 use App\Http\Resources\ProductResource;
 use App\Http\Requests\StoreProductRequest;
+use App\Services\ProductService;
+use App\Exceptions\UnauthorizedProductActionException;
+use Illuminate\Http\JsonResponse;
+use Throwable;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        protected ProductService $productService
+    ) {
+    }
+
     /**
-     * Display a listing of the resource.
+     * Display a listing of the products.
      */
     public function index()
     {
-        $user = auth()->user();
-
-        if ($user-> role->value === 'salesman') {
-            // If the user is a salesman, return only the products they added
-            return ProductResource::collection(Product::where('user_id', $user->id)->get());
+        try {
+            $products = $this->productService->getProducts(auth()->user());
+            return ProductResource::collection($products);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-        // If the user is an admin or customer, return all products
-        return ProductResource::collection(Product::all());
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created product in storage.
      */
-    public function store(StoreProductRequest $request)
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $validated['user_id'] = auth()->id(); // Assign the authenticated user's ID to the product
+        try {
+            $product = $this->productService->createProduct(auth()->user(), $request->validated());
 
-        $product = Product::create($validated);
-
-        return (new ProductResource($product))
-            ->response()
-            ->setStatusCode(201);
-
+            return (new ProductResource($product->load('user')))
+                ->response()
+                ->setStatusCode(201);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified product.
      */
     public function show(Product $product)
     {
-        $user = auth()->user();
+        try {
+            $product = $this->productService->getProductById(auth()->user(), $product->id);
 
-        // Salesmen can only view their own products
-        if ($user->role->value === 'salesman' && $product->user_id !== $user->id) {
-            return response()->json(['message' => 'you are not authorized to view this product'], 403);
+            return new ProductResource($product->load('user'));
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        return new ProductResource($product->load('user'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified product in storage.
      */
     public function update(StoreProductRequest $request, Product $product)
     {
-        $user = auth()->user();
-        
-        // Only the owner or admin can update
-        if ($user->role->value === 'salesman' && $product->user_id !== $user->id) {
-            return response()->json(['message' => 'you are not authorized to update this product'], 403);
-        }
-        
-        $product->update($request->validated());
+        try {
+            $updated = $this->productService->updateProduct(auth()->user(), $product, $request->validated());
 
-        return new ProductResource($product);
+            return new ProductResource($updated);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified product from storage.
      */
-    public function destroy(Product $product)
+    public function destroy(Product $product): JsonResponse
     {
-        $user = auth()->user();
-        
-        // Only the owner or admin can delete
-        if ($user->role->value === 'salesman' && $product->user_id !== $user->id) {
-            return response()->json(['message' => 'you are not authorized to delete this product'], 403);
+        try {
+            $this->productService->deleteProduct(auth()->user(), $product);
+
+            return response()->json(['message' => 'Product deleted successfully'], 200);
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-        
-        $product->delete();
-        return response()->json(['message' => 'Product deleted successfully'], 204);
     }
 }
