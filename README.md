@@ -164,6 +164,7 @@ php artisan serve
 ```
 
 The API will be available at `http://localhost:8000`
+
 ```
 
 
@@ -276,59 +277,140 @@ Laravel-E-Commerce/
 | GET | `/api/orders/{id}` | Get order details | Customer, Admin |
 | PATCH | `/api/orders/{id}/status/{status}` | Update order status | Salesman, Admin |
 
-
 ## Database Schema
 
-### Users Table
+### Entity Relationship Diagram
 
-- id (Primary Key)
-- name
-- email (Unique)
-- password (Hashed)
-- role (customer, admin, salesman)
-- email_verified_at
-- timestamps
+```mermaid
+erDiagram
+  USERS ||--o| CARTS : owns
+  CARTS ||--o{ CART_ITEMS : contains
+  CART_ITEMS }o--|| PRODUCTS : references
+  USERS ||--o{ ORDERS : places
+  ORDERS ||--o{ ORDER_ITEMS : contains
+  ORDER_ITEMS }o--|| PRODUCTS : references
 
-### Products Table
+  USERS {
+    uuid id PK
+    string name
+    string email
+    string password_hash
+    timestamp created_at
+  }
+  PRODUCTS {
+    uuid id PK
+    string name
+    text description
+    decimal price
+    int quantity
+    timestamp created_at
+  }
+  CARTS {
+    uuid id PK
+    uuid user_id FK
+    timestamp created_at
+  }
+  CART_ITEMS {
+    uuid id PK
+    uuid cart_id FK
+    uuid product_id FK
+    int quantity
+  }
+  ORDERS {
+    uuid id PK
+    uuid user_id FK
+    decimal total_amount
+    string status
+    timestamp created_at
+  }
+  ORDER_ITEMS {
+    uuid id PK
+    uuid order_id FK
+    uuid product_id FK
+    int quantity
+    decimal price_at_purchase
+  }
+```
 
-- id (Primary Key)
-- name
-- description
-- price (Decimal 8,2)
-- stock_quantity
-- user_id (Foreign Key - Salesman/Admin)
-- timestamps
+### Table Descriptions
 
-### Carts Table
+#### Users Table
 
-- id (Primary Key)
-- user_id (Foreign Key - Customer)
-- timestamps
+| Column | Type | Constraints | Description |
+| -------- | ------ | ------------- | ------------- |
+| id | UUID | Primary Key | Unique user identifier |
+| name | String | Required | User's full name |
+| email | String | Unique, Required | User's email address |
+| password_hash | String | Required | Bcrypt hashed password |
+| role | Enum | customer, admin, salesman | User role for authorization |
+| email_verified_at | Timestamp | Nullable | Email verification timestamp |
+| created_at | Timestamp | Auto-generated | Account creation time |
+| updated_at | Timestamp | Auto-generated | Last account update time |
 
-### Cart Items Table
+#### Products Table
 
-- id (Primary Key)
-- cart_id (Foreign Key)
-- product_id (Foreign Key)
-- quantity
-- timestamps
+| Column | Type | Constraints | Description |
+| -------- | ------ | ------------- | ------------- |
+| id | UUID | Primary Key | Unique product identifier |
+| name | String | Required | Product name |
+| description | Text | Nullable | Detailed product description |
+| price | Decimal(8,2) | Required | Product price |
+| stock_quantity | Integer | Required, >= 0 | Available quantity in inventory |
+| user_id | UUID | Foreign Key → Users | Salesman/Admin who created product |
+| created_at | Timestamp | Auto-generated | Product creation time |
+| updated_at | Timestamp | Auto-generated | Last update time |
 
-### Orders Table
+#### Carts Table
 
-- id (Primary Key)
-- user_id (Foreign Key - Customer)
-- status (pending, processing, completed, cancelled)
-- total_amount (Decimal 10,2)
-- timestamps
+| Column | Type | Constraints | Description |
+| -------- | ------ | ------------- | ------------- |
+| id | UUID | Primary Key | Unique cart identifier |
+| user_id | UUID | Foreign Key → Users | Customer who owns cart |
+| created_at | Timestamp | Auto-generated | Cart creation time |
+| updated_at | Timestamp | Auto-generated | Last modification time |
 
-### Order Items Table
+#### Cart Items Table
 
-- id (Primary Key)
-- order_id (Foreign Key)
-- product_id (Foreign Key)
-- quantity
-- unit_price (Decimal 8,2)
-- timestamps
+| Column | Type | Constraints | Description |
+| -------- | ------ | ------------- | ------------- |
+| id | UUID | Primary Key | Unique cart item identifier |
+| cart_id | UUID | Foreign Key → Carts | Associated cart |
+| product_id | UUID | Foreign Key → Products | Associated product |
+| quantity | Integer | Required, > 0 | Item quantity in cart |
+| created_at | Timestamp | Auto-generated | Item added time |
+| updated_at | Timestamp | Auto-generated | Last update time |
+
+#### Orders Table
+
+| Column | Type | Constraints | Description |
+| -------- | ------ | ------------- | ------------- |
+| id | UUID | Primary Key | Unique order identifier |
+| user_id | UUID | Foreign Key → Users | Customer who placed order |
+| status | Enum | pending, processing, completed, cancelled | Current order status |
+| total_amount | Decimal(10,2) | Required | Total order value |
+| created_at | Timestamp | Auto-generated | Order placement time |
+| updated_at | Timestamp | Auto-generated | Last status change time |
+
+#### Order Items Table
+
+| Column | Type | Constraints | Description |
+| -------- | ------ | ------------- | ------------- |
+| id | UUID | Primary Key | Unique order item identifier |
+| order_id | UUID | Foreign Key → Orders | Associated order |
+| product_id | UUID | Foreign Key → Products | Product in order |
+| quantity | Integer | Required, > 0 | Quantity ordered |
+| price_at_purchase | Decimal(8,2) | Required | Product price at purchase time |
+| created_at | Timestamp | Auto-generated | Item added to order time |
+| updated_at | Timestamp | Auto-generated | Last update time |
+
+### Relationships
+
+- **Users → Carts**: One-to-One (Each customer has one cart)
+- **Carts → Cart Items**: One-to-Many (A cart has many items)
+- **Cart Items → Products**: Many-to-One (Multiple items can reference same product)
+- **Users → Orders**: One-to-Many (A customer places many orders)
+- **Orders → Order Items**: One-to-Many (An order contains many items)
+- **Order Items → Products**: Many-to-One (Multiple order items reference products)
 
 ## Authentication
 
@@ -395,7 +477,6 @@ Content-Type: application/json
 - Create, update, and delete products
 - Update order status
 - Access all orders and user data
-
 
 ## Development
 
