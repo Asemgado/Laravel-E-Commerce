@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Cart;
-use Illuminate\Http\Request;
 use App\Services\CartService;
 use App\Http\Resources\CartsResource;
 use App\Http\Requests\CartRequest;
+use Illuminate\Http\JsonResponse;
+use InvalidArgumentException;
 
 class CartController extends Controller
 {
@@ -26,57 +26,59 @@ class CartController extends Controller
     /**
      * Add item to the cart.
      */
-    public function addToCart(CartRequest $request)
+    public function addToCart(CartRequest $request): JsonResponse
     {
-        $productId = $request->validated()['product_id'];
-        $quantity = $request->validated()['quantity'];
+        $data = $request->validated();
 
         try {
-            $cart = $this->cartService->addItem(auth()->user(), $productId, $quantity);
-            return response()->json(['message' => 'Product added to cart successfully', 'cart' => new CartsResource($cart)], 201);
-            
-        } catch (\Throwable $e) {
+            $cart = $this->cartService->addItem(auth()->user(), $data['product_id'], $data['quantity']);
+        } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        return response()->json([
+            'message' => 'Product added to cart successfully',
+            'cart' => new CartsResource($cart),
+        ], 201);
     }
 
     /**
      * Update Product quantity in the cart.
      */
-    public function update(CartRequest $request)
+    public function update(CartRequest $request): JsonResponse
     {
-        $productId = $request->validate()['product_id'];
-        $quantity = $request->validate()['quantity'];
+        $data = $request->validated();
+
         try {
-            $cart = $this->cartService->updateCart(auth()->user(), $productId, $quantity);
-            return response()->json(['message' => 'Cart updated successfully', 'cart' => new CartsResource($cart)], 200);
-        } catch (\Throwable $e) {
+            $cart = $this->cartService->updateItem(auth()->user(), $data['product_id'], $data['quantity']);
+        } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Item not found in cart.'], 404);
         }
+
+        return response()->json([
+            'message' => 'Cart updated successfully',
+            'cart' => new CartsResource($cart),
+        ], 200);
     }
 
     /**
      * Remove item from the cart.
      */
-    public function removeItem(int $productId)
+     public function removeItem(int $productId): JsonResponse
     {
-        try {
-            $this->cartService->removeItem(auth()->user(), $productId);
-            return response()->json(['message' => 'Item removed from cart successfully'], 200);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
+        $this->cartService->removeItem(auth()->user(), $productId);
+
+        return response()->json(['message' => 'Item removed from cart successfully'], 200);
     }
     /**
      * Clear the cart.
      */
-    public function clear()
+     public function clear(): JsonResponse
     {
-        try {
-            $this->cartService->clearCart(auth()->user());
-            return response()->json(['message' => 'Cart cleared successfully'], 200);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
+        $this->cartService->clearCart(auth()->user());
+
+        return response()->json(['message' => 'Cart cleared successfully'], 200);
     }
 }

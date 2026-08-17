@@ -6,70 +6,78 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
+use App\Services\AuthService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request)
-    {
-        $validated = $request->validated();
-        
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-        ]);
-        
-        
+     public function __construct(
+        protected AuthService $authService
+    ) {
+    }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+    /**
+     *  register a new user
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $result = $this->authService->register($request->validated());
 
         return response()->json([
-            'user' => new UserResource($user),
-            'token' => $token,
+            'user' => new UserResource($result['user']),
+            'token' => $result['token'],
         ], 201);
     }
 
-    public function login(LoginRequest $request)
+    /**
+     *  sign in to the system
+     */
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validated();
-
-        if (! Auth::attempt($credentials)) {
+        try {
+            $result = $this->authService->login($request->validated());
+        } catch (ValidationException $e) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        $user = Auth::user();
-        $token = $user->createToken('api-token')->plainTextToken;
-
         return response()->json([
-            'user' => new UserResource($user),
-            'token' => $token,
-        ]);
+            'message' => 'welcome back '. auth()->user()->name,
+            'user' => new UserResource($result['user']),
+            'token' => $result['token'],
+        ], 200);
     }
 
-    public function logout(Request $request)
+    /**
+     * sign out of the system
+     */
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $this->authService->logout($request->user());
 
-        return response()->json(['message' => 'Logged out successfully']);  
+        return response()->json(['message' => 'Logged out successfully'], 200);
     }
+
+    /**
+     * admin endpoint for user's email confirmation
+     */
     public function confirmEmail(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
         ]);
 
-        $user = User::where('email', $request->email)->first();
-
-        if (! $user) {
-            return response()->json(['message' => 'User not found'], 404);
+        try {
+            
+            $this->authService->confirmEmail($request['email']);
+        
+        } catch(InvalidArgumentException $e){
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        $user->confirmEmail();
         return response()->json(['message' => 'Email confirmed successfully'], 200);
     }
 }

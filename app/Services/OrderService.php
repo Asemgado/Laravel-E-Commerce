@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Enums\OrderStatus;
+use App\Enums\UserRolesEnum;
+use Illuminate\Auth\Access\AuthorizationException;
+use InvalidArgumentException;
 
 class OrderService
 {
@@ -16,7 +18,7 @@ class OrderService
         $cart = $user->cart()->with('items.product')->first();
 
         if (! $cart || $cart->items->isEmpty()) {
-            throw new \InvalidArgumentException('Your cart is empty.');
+            throw new InvalidArgumentException('Your cart is empty.');
         }
 
         return DB::transaction(function () use ($user, $cart) {
@@ -26,11 +28,11 @@ class OrderService
                 $product = $item->product;
 
                 if (! $product) {
-                    throw new \InvalidArgumentException('One of the products no longer exists.');
+                    throw new InvalidArgumentException('One of the products no longer exists.');
                 }
 
                 if ($item->quantity > $product->stock_quantity) {
-                    throw new \InvalidArgumentException("Not enough stock for product: {$product->name}");
+                    throw new InvalidArgumentException("Not enough stock for product: {$product->name}");
                 }
 
                 $total += $item->price * $item->quantity;
@@ -61,13 +63,27 @@ class OrderService
         });
     }
 
-    public function getUserOrders(User $user)
+   public function getOrders(User $user)
     {
-        return $user->orders()->with('items.product')->latest()->get();
+        $query = Order::query()->with('items.product')->latest();
+
+        if ($user->role !== UserRolesEnum::ADMIN) {
+            $query->where('user_id', $user->id);
+        }
+        return $query->get();
     }
 
-    public function getOrder(Order $order): Order
+     public function canViewOrder(User $user, Order $order): bool
     {
+        return $user->role === UserRolesEnum::ADMIN || $order->user_id === $user->id;
+    }
+
+    public function getOrder(User $user, Order $order): Order
+    {
+        if (! $this->canViewOrder($user, $order)) {
+            throw new AuthorizationException('You do not have access to this order.');
+        }
+
         return $order->load('items.product');
     }
     public function ChangeOrderStatus(Order $order, string $status): Order

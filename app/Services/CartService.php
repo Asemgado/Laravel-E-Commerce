@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class CartService
 {
@@ -21,7 +21,7 @@ class CartService
         $product = Product::findOrFail($productId);
 
         if ($quantity > $product->stock_quantity) {
-            throw new \InvalidArgumentException('Not enough stock available.');
+            throw new InvalidArgumentException('Not enough stock available.');
         }
 
         $cart = $this->getCart($user);
@@ -32,7 +32,7 @@ class CartService
             $newQuantity = $item->quantity + $quantity;
 
             if ($newQuantity > $product->stock_quantity) {
-                throw new \InvalidArgumentException('Not enough stock available for the updated quantity.');
+                throw new InvalidArgumentException('Not enough stock available for the updated quantity.');
             }
 
             $item->update([
@@ -55,7 +55,7 @@ class CartService
         $product = Product::findOrFail($productId);
 
         if ($quantity > $product->stock_quantity) {
-            throw new \InvalidArgumentException('Not enough stock available.');
+            throw new InvalidArgumentException('Not enough stock available.');
         }
 
         $cart = $this->getCart($user);
@@ -86,8 +86,8 @@ class CartService
         $cart->items()->delete();
     }
 
-    public function getItems(User $user)
-    {
-        return $this->getCart($user)->items()->with('product')->get();
-    }
+    // public function getItems(User $user)
+    // {
+    //     return $this->getCart($user)->items()->with('product')->get();
+    // }
 }
