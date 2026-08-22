@@ -34,8 +34,8 @@ Route::middleware(['auth:sanctum', 'role:customer,admin'])->group(function () {
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'addToCart']);
-    Route::patch('/cart/{productId}', [CartController::class, 'update']);
-    Route::delete('/cart/{productId}', [CartController::class, 'removeItem']);
+    Route::patch('/cart', [CartController::class, 'update']);
+    Route::delete('/cart/{product}', [CartController::class, 'removeItem']);
     Route::delete('/cart', [CartController::class, 'clear']);
 
     // Orders
@@ -44,4 +44,4 @@ Route::middleware(['auth:sanctum', 'role:customer,admin'])->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 });
 
-Route::patch('/orders/{order}/status/{status}', [OrderController::class, 'changeStatus'])->middleware(['auth:sanctum', 'role:admin,salesman']);
+Route::patch('/orders-status', [OrderController::class, 'changeStatus'])->middleware(['auth:sanctum', 'role:admin,salesman']);

@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\OrderStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class RegisterRequest extends FormRequest
+class ChangeOrderStatusRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -14,7 +16,6 @@ class RegisterRequest extends FormRequest
     {
         return true;
     }
-
     /**
      * Get the validation rules that apply to the request.
      *
@@ -23,10 +24,8 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'password' => 'required|string|min:4|confirmed',
-            'role' => 'required|in:customer,salesman',
+            'order_id' => 'required|integer',
+            'status' => ['required', Rule::enum(OrderStatus::class)],
         ];
     }
 }

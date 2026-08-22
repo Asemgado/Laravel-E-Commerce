@@ -44,7 +44,7 @@ class CartController extends Controller
     {
         $data = $request->validated();
 
-            $cart = $this->cartService->addItem(auth()->user(), $data['product_id'], $data['quantity']);
+        $cart = $this->cartService->addItem(auth()->user(), $data['product_id'], $data['quantity']);
 
         return response()->json([
             'message' => 'Product added to cart successfully',
@@ -56,7 +56,6 @@ class CartController extends Controller
      * Update Product quantity in the cart.
      */
     #[Group('Cart')]
-    #[PathParameter('productId', description: 'Product ID to update in the cart', type: 'integer', example: 1)]
     #[BodyParameter('product_id', description: 'Product ID to update in the cart', type: 'integer', example: 1)]
     #[BodyParameter('quantity', description: 'New quantity value', type: 'integer', example: 3)]
     #[ScrambleResponse(200, description: 'Cart updated successfully', type: 'array{message: string, cart: array{id: int, user_id: int, items: array{0: array{id: int, product_id: int, product_name: string|null, quantity: int, price: float, line_total: float}}, totals: array{items_count: int, subtotal: float}, created_at: string|null, updated_at: string|null}}')]
@@ -67,7 +66,7 @@ class CartController extends Controller
     {
         $data = $request->validated();
 
-            $cart = $this->cartService->updateItem(auth()->user(), $data['product_id'], $data['quantity']);
+        $cart = $this->cartService->updateItem(auth()->user(), $data['product_id'], $data['quantity']);
 
         return response()->json([
             'message' => 'Cart updated successfully',
@@ -79,12 +78,12 @@ class CartController extends Controller
      * Remove item from the cart.
      */
     #[Group('Cart')]
-    #[PathParameter('productId', description: 'Product ID to remove from the cart', type: 'integer', example: 1)]
+    #[PathParameter('product', description: 'Product ID to remove from the cart', type: 'integer', example: 1)]
     #[ScrambleResponse(200, description: 'Cart item removed successfully', type: 'array{message: string}')]
     #[ScrambleResponse(401, description: 'Unauthenticated', type: 'array{message: string}')]
-    public function removeItem(int $productId): JsonResponse
+    public function removeItem(Product $product): JsonResponse
     {
-        $this->cartService->removeItem(auth()->user(), $productId);
+        $this->cartService->removeItem(auth()->user(), $product->id);
 
         return response()->json(['message' => 'Item removed from cart successfully'], 200);
     }

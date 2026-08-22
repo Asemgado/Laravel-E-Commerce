@@ -28,24 +28,21 @@ class CartService
 
         $item = $cart->items()->where('product_id', $productId)->first();
 
-        if ($item) {
-            $newQuantity = $item->quantity + $quantity;
+        $newQuantity = ($item?->quantity ?? 0) + $quantity;
 
-            if ($newQuantity > $product->stock_quantity) {
-                throw new InvalidArgumentException('Not enough stock available for the updated quantity.');
-            }
+         if ($newQuantity > $product->stock_quantity) {
+            throw new InvalidArgumentException('Not enough stock available for the updated quantity.');
+        }
 
-            $item->update([
+        $cart->items()->updateOrCreate(
+            [
+                'product_id' => $productId,
+            ],
+            [
                 'quantity' => $newQuantity,
                 'price' => $product->price,
-            ]);
-        } else {
-            $cart->items()->create([
-                'product_id' => $productId,
-                'quantity' => $quantity,
-                'price' => $product->price,
-            ]);
-        }
+            ]
+        );
 
         return $cart->fresh()->load('items.product');
     }
@@ -86,8 +83,4 @@ class CartService
         $cart->items()->delete();
     }
 
-    // public function getItems(User $user)
-    // {
-    //     return $this->getCart($user)->items()->with('product')->get();
-    // }
 }

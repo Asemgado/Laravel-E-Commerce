@@ -87,8 +87,9 @@ class OrderService
 
         return $order->load('items.product');
     }
-    public function ChangeOrderStatus(Order $order, string $status): Order
+    public function ChangeOrderStatus(int $orderId, string $status): Order
     {
+        $order = Order::findOrFail($orderId);
         $order->update(['status' => $status]);
         return $order->fresh()->load('items.product');
     }

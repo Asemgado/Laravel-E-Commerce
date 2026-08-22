@@ -13,6 +13,14 @@ class AuthService
 {
     public function register(array $data): array
     {
+        $existUser = User::where('email', $data['email'])->first();
+
+        if($existUser) {
+            throw ValidationException::withMessages([
+                'email' => ['you can not use this email']
+            ]);
+        }
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
