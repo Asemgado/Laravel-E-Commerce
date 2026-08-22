@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Enums\OrderStatus;
 use App\Enums\UserRolesEnum;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use InvalidArgumentException;
 
 class OrderService
@@ -28,7 +29,7 @@ class OrderService
                 $product = $item->product;
 
                 if (! $product) {
-                    throw new InvalidArgumentException('One of the products no longer exists.');
+                    throw new ModelNotFoundException("product with id {$item->product_id} deos not exists.");
                 }
 
                 if ($item->quantity > $product->stock_quantity) {

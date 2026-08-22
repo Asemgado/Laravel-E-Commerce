@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CartRequest;
 use App\Http\Resources\CartsResource;
+use App\Models\Product;
 use App\Services\CartService;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Dedoc\Scramble\Attributes\Response as ScrambleResponse;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use InvalidArgumentException;
 
 class CartController extends Controller
 {
@@ -45,11 +44,7 @@ class CartController extends Controller
     {
         $data = $request->validated();
 
-        try {
             $cart = $this->cartService->addItem(auth()->user(), $data['product_id'], $data['quantity']);
-        } catch (InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
 
         return response()->json([
             'message' => 'Product added to cart successfully',
@@ -72,13 +67,7 @@ class CartController extends Controller
     {
         $data = $request->validated();
 
-        try {
             $cart = $this->cartService->updateItem(auth()->user(), $data['product_id'], $data['quantity']);
-        } catch (InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['message' => 'Item not found in cart.'], 404);
-        }
 
         return response()->json([
             'message' => 'Cart updated successfully',

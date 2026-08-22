@@ -10,8 +10,6 @@ use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Dedoc\Scramble\Attributes\Response as ScrambleResponse;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
@@ -64,11 +62,7 @@ class ProductController extends Controller
     #[ScrambleResponse(404, description: 'Product not found', type: 'array{message: string}')]
     public function show(Product $product): JsonResponse
     {
-        try {
-            $product = $this->productService->getProductById(auth()->user(), $product->id);
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['message' => $e->getMessage()], 404);
-        }
+        $product = $this->productService->getProductById(auth()->user(), $product->id);
 
         return (new ProductResource($product->load('user')))
             ->response()
@@ -90,11 +84,7 @@ class ProductController extends Controller
     #[ScrambleResponse(404, description: 'Product not found', type: 'array{message: string}')]
     public function update(StoreProductRequest $request, Product $product): JsonResponse
     {
-        try {
-            $updated = $this->productService->updateProduct(auth()->user(), $product, $request->validated());
-        } catch (AuthorizationException $e) {
-            return response()->json(['message' => $e->getMessage()], 403);
-        }
+        $updated = $this->productService->updateProduct(auth()->user(), $product, $request->validated());
 
         return (new ProductResource($updated))
             ->response()
@@ -112,11 +102,7 @@ class ProductController extends Controller
     #[ScrambleResponse(404, description: 'Product not found', type: 'array{message: string}')]
     public function destroy(Product $product): JsonResponse
     {
-        try {
-            $this->productService->deleteProduct(auth()->user(), $product);
-        } catch (AuthorizationException $e) {
-            return response()->json(['message' => $e->getMessage()], 403);
-        }
+        $this->productService->deleteProduct(auth()->user(), $product);
 
         return response()->json(['message' => 'Product deleted successfully'], 200);
     }

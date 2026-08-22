@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ConfirmEmailRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
@@ -52,11 +53,7 @@ class AuthController extends Controller
     #[ScrambleResponse(401, description: 'Invalid login credentials', type: 'array{message: string}')]
     public function login(LoginRequest $request): JsonResponse
     {
-        try {
-            $result = $this->authService->login($request->validated());
-        } catch (ValidationException $e) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
-        }
+        $result = $this->authService->login($request->validated());
 
         return response()->json([
             'message' => 'welcome back '.auth()->user()->name,
@@ -86,19 +83,9 @@ class AuthController extends Controller
     #[ScrambleResponse(401, description: 'Unauthenticated', type: 'array{message: string}')]
     #[ScrambleResponse(403, description: 'Only admin users can confirm emails', type: 'array{message: string}')]
     #[ScrambleResponse(422, description: 'The provided email is invalid or cannot be confirmed', type: 'array{message: string}')]
-    public function confirmEmail(Request $request)
+    public function confirmEmail(ConfirmEmailRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        try {
-
-            $this->authService->confirmEmail($request['email']);
-
-        } catch (InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
+        $this->authService->confirmEmail($request->validated('email'));
 
         return response()->json(['message' => 'Email confirmed successfully'], 200);
     }
