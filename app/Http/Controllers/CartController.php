@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CartRequest;
 use App\Http\Resources\CartsResource;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Services\CartService;
 use Dedoc\Scramble\Attributes\BodyParameter;
@@ -78,12 +79,12 @@ class CartController extends Controller
      * Remove item from the cart.
      */
     #[Group('Cart')]
-    #[PathParameter('product', description: 'Product ID to remove from the cart', type: 'integer', example: 1)]
+    #[PathParameter('item', description: 'CartItem ID to remove from the cart', type: 'integer', example: 1)]
     #[ScrambleResponse(200, description: 'Cart item removed successfully', type: 'array{message: string}')]
     #[ScrambleResponse(401, description: 'Unauthenticated', type: 'array{message: string}')]
-    public function removeItem(Product $product): JsonResponse
+    public function removeItem(CartItem $item): JsonResponse
     {
-        $this->cartService->removeItem(auth()->user(), $product->id);
+        $this->cartService->removeItem(auth()->user(), $item);
 
         return response()->json(['message' => 'Item removed from cart successfully'], 200);
     }

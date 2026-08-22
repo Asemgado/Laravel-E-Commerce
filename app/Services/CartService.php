@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\User;
 use InvalidArgumentException;
@@ -67,12 +68,12 @@ class CartService
         return $cart->fresh()->load('items.product');
     }
 
-    public function removeItem(User $user, int $productId): void
+    public function removeItem(User $user, CartItem $item): void
     {
         $cart = $this->getCart($user);
 
         $cart->items()
-            ->where('product_id', $productId)
+            ->where('id', $item->id)
             ->delete();
     }
 
